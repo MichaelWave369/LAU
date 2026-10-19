@@ -14,7 +14,7 @@ export async function runLocalClassroom({model,courseId,agentId="forge",timeoutM
   let response;
   try{
     response=await fetchImpl(ENDPOINT,{
-      method:"POST",signal:controller.signal,
+      method:"POST",signal:controller.signal,redirect:"error",
       headers:{"content-type":"application/json"},
       body:JSON.stringify({
         model,prompt,stream:false,format:"json",options:{temperature:0,num_predict:256,num_ctx:2048}

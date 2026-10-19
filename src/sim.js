@@ -133,15 +133,16 @@ export function recordPractice(state,courseId,agentId,answers,at=new Date().toIS
   return s;
 }
 // A file import is a user-selected claim about a local run; it is NOT independent verification.
-export function addLocalReport(state,record){
-  if(!validateImportedReports([record])||!Array.isArray(state.localRuns)||
-    state.localRuns.length>=80||state.localRuns.some(r=>r.id===record.id))return state;
+export function addLocalReports(state,reports){
+  if(!Array.isArray(reports)||reports.length<1||reports.length>30||
+     !Array.isArray(state.localRuns)||state.localRuns.length+reports.length>80||
+     !validateImportedReports([...state.localRuns,...reports]))return state;
   const next=copy(state);
-  next.localRuns.push(record);
-  event(next,"Imported local runner REPORT for "+record.agentId+": "+record.courseId+" ("+
-    (record.grade?.score??"invalid response")+"). Origin unverified; hash-checked on import.","receipt");
+  next.localRuns.push(...reports);
+  event(next,"Imported "+reports.length+" local runner REPORT(S), hash-checked by UI on import; all source claims remain UNVERIFIED.","receipt");
   return next;
 }
+export function addLocalReport(state,record){return addLocalReports(state,[record]);}
 export function setScene(state,scene) { return SCENES.has(scene)?{...state,scene}:state; }
 export function toggleSeason(state) { return {...state,season:state.season==="autumn"?"winter":"autumn"}; }
 export function clearCompleted(state) {
