@@ -4,7 +4,7 @@ import { EXERCISES, gradeAnswers } from "./assessment.js";
 
 export const CLASSROOM_SCHEMA=1;
 export const MAX_RESPONSE=12000;
-export const MODEL_RE=/^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,99}$/;
+export const MODEL_RE=/^(?!.*:\/\/)[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,99}$/;
 export const AGENT_IDS=new Set(["forge","coherence","scout","rook","nyx","vault"]);
 export const COURSES=new Map(EXERCISES.map(course=>[course.id,course]));
 const HEX=/^[a-f0-9]{64}$/;
