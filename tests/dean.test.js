@@ -5,7 +5,7 @@ import { EXERCISES, transcript } from "../src/assessment.js";
 
 test("v0.3 state starts with an empty dean's transcript",()=>{
   const s=makeInitialState();
-  assert.equal(s.version,2);
+  assert.equal(s.version,3);
   assert.deepEqual(s.assessments,[]);
   assert.equal(validateSnapshot(s),true);
 });
@@ -15,11 +15,13 @@ test("legacy v0.2 snapshots upgrade without losing receipts or tasks",()=>{
   const legacy=structuredClone(s);
   legacy.version=1;
   delete legacy.assessments;
+  delete legacy.localRuns;
   const upgraded=upgradeSnapshot(legacy);
-  assert.equal(upgraded.version,2);
+  assert.equal(upgraded.version,3);
   assert.deepEqual(upgraded.receipts,legacy.receipts);
   assert.deepEqual(upgraded.tasks,legacy.tasks);
   assert.deepEqual(upgraded.assessments,[]);
+  assert.deepEqual(upgraded.localRuns,[]);
   assert.equal(validateSnapshot(upgraded),true);
 });
 test("operator-selected course answers generate only simulated records",()=>{
