@@ -1,4 +1,6 @@
-export const VERSION = 1;
+import { createPracticeRecord, validPracticeRecord } from "./assessment.js";
+
+export const VERSION = 2;
 export const STORAGE_KEY = "lau-campus-v01";
 
 export const AGENTS = Object.freeze([
@@ -39,7 +41,8 @@ export const BUILDINGS = Object.freeze({
     { id:"lecture", title:"Lecture Hall", x:130, y:175, w:245, h:145, gain:"Knowledge", subtitle:"Theory and questions" },
     { id:"lab", title:"Practicum Lab", x:445, y:160, w:255, h:170, gain:"Compute", subtitle:"Exercises and tests" },
     { id:"archive", title:"Evidence Wing", x:745, y:190, w:215, h:140, gain:"Records", subtitle:"Accountability" },
-    { id:"garden", title:"Reflection Garden", x:365, y:420, w:330, h:130, gain:"Morale", subtitle:"Rest and connect" }
+    { id:"garden", title:"Reflection Garden", x:365, y:420, w:330, h:130, gain:"Morale", subtitle:"Rest and connect" },
+    { id:"dean", title:"Dean\u0027s Office", x:87, y:428, w:220, h:120, gain:"Records", subtitle:"Student records & practice assessments" }
   ]
 });
 
@@ -56,7 +59,7 @@ export function makeInitialState() {
       {id:1,title:"Draw the LAU campus plan",role:"nyx",status:"queued",remaining:3,effort:3},
       {id:2,title:"Map campus security boundaries",role:"rook",status:"queued",remaining:4,effort:4}
     ],
-    receipts:[], log:[{at:"00:00",kind:"info",msg:"LAU opened. Everything here is SIMULATED until a real adapter is connected."}]
+    receipts:[], assessments:[], log:[{at:"00:00",kind:"info",msg:"LAU opened. Everything here is SIMULATED until a real adapter is connected."}]
   };
 }
 function stamp() { return new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}); }
@@ -115,6 +118,19 @@ export function visitBuilding(state, buildingId) {
   event(s,"Visited "+b.title+". +"+(b.gain==="Morale"?2:1)+" SIMULATED "+b.gain+".");
   return s;
 }
+// Results come only from a human selecting answers in the demo classroom.
+// Never issue verified model credentials from these records.
+export function recordPractice(state,courseId,agentId,answers,at=new Date().toISOString()){
+  if(!IDS.has(agentId)||!Array.isArray(state.assessments)||state.assessments.length>=200)return state;
+  const nextNumber=Math.max(0,...state.assessments.map(r=>Number(r.id.slice(6))))+1;
+  const attempt=createPracticeRecord(courseId,agentId,answers,nextNumber,at);
+  if(!attempt||!validPracticeRecord(attempt,IDS))return state;
+  const s=copy(state);
+  s.assessments.push(attempt);
+  s.resources.Records=Math.min(1000000,s.resources.Records+1);
+  event(s,"Operator entered demo answers for "+agentId+" in "+courseId+": "+attempt.score+"% ("+(attempt.passed?"demo pass":"retry")+"). SIMULATED / UNVERIFIED.","receipt");
+  return s;
+}
 export function setScene(state,scene) { return SCENES.has(scene)?{...state,scene}:state; }
 export function toggleSeason(state) { return {...state,season:state.season==="autumn"?"winter":"autumn"}; }
 export function clearCompleted(state) {
@@ -135,8 +151,21 @@ export function validateSnapshot(s) {
       &&STATUS.has(t.status)&&numeric(t.remaining,0,10)&&numeric(t.effort,1,10)&&t.remaining<=t.effort)) return false;
   if (new Set(s.tasks.map(t=>t.id)).size!==s.tasks.length) return false;
   if (!Array.isArray(s.receipts)||s.receipts.length>2000||!s.receipts.every(r=>r&&short(r.id,24)&&short(r.title,100)&&IDS.has(r.agent)&&short(r.at,50)&&numeric(r.step,0,1000000)&&r.origin==="SIMULATED"&&r.verified===false)) return false;
+  if(!Array.isArray(s.assessments)||s.assessments.length>200||
+      !s.assessments.every(r=>validPracticeRecord(r,IDS)))return false;
+  if(new Set(s.assessments.map(r=>r.id)).size!==s.assessments.length)return false;
   if (!Array.isArray(s.log)||s.log.length>80||!s.log.every(e=>e&&short(e.at,50)&&short(e.msg,240)&&["info","receipt"].includes(e.kind))) return false;
   return true;
+}
+// Preserve earlier browser saves without turning legacy simulation into "real" evidence.
+export function upgradeSnapshot(raw){
+  if(!raw||typeof raw!=="object")return null;
+  if(raw.version===VERSION)return validateSnapshot(raw)?raw:null;
+  if(raw.version===1&&!Object.prototype.hasOwnProperty.call(raw,"assessments")){
+    const upgraded={...raw,version:VERSION,assessments:[]};
+    return validateSnapshot(upgraded)?upgraded:null;
+  }
+  return null;
 }
 export function snapshot(state) {
   const data=copy(state);
