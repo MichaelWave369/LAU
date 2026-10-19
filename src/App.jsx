@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import {
   AGENTS, BUILDINGS, COURSES, STORAGE_KEY, makeInitialState, assignTask,
   advanceState, visitBuilding, setScene, toggleSeason, clearCompleted,
-  validateSnapshot, snapshot
+  validateSnapshot, snapshot, upgradeSnapshot, recordPractice
 } from "./sim.js";
 import { spawnWalkers, pathToBuilding, travelOneStep } from "./navigation.js";
 import RoomInterior from "./RoomInterior.jsx";
+import DeanOffice from "./DeanOffice.jsx";
+import { transcript } from "./assessment.js";
 
 const SCENES = [
   {id:"grounds",name:"Campus Grounds",symbol:"⌂",sub:"Explore the living town"},
@@ -17,7 +19,7 @@ function role(id){return AGENTS.find(a=>a.id===id) || AGENTS[0];}
 function readState() {
   try {
     const saved=localStorage.getItem(STORAGE_KEY);
-    if(saved){const parsed=JSON.parse(saved); if(validateSnapshot(parsed)) return parsed;}
+    if(saved){const parsed=upgradeSnapshot(JSON.parse(saved)); if(parsed) return parsed;}
   } catch { /* Invalid or unavailable local storage starts a fresh simulation. */ }
   return makeInitialState();
 }
@@ -138,7 +140,8 @@ function App() {
   const [taskRole,setTaskRole]=useState("forge");
   const [notice,setNotice]=useState("");
   const [help,setHelp]=useState(false);
-  const [walkers,setWalkers]=useState(()=>spawnWalkers("grounds"));
+  const [deanCourse,setDeanCourse]=useState("orientation");
+  const [walkers,setWalkers]=useState(()=>spawnWalkers(data.scene));
   const [travelling,setTravelling]=useState(null);
   const [room,setRoom]=useState(null);
   const travelSerial=useRef(0);
@@ -170,6 +173,17 @@ function App() {
     setTravelling(null);
   },[travelling,walkers,data.scene]);
 
+  function openDean(courseId="orientation"){
+    setTravelling(null);
+    setRoom({id:"dean",scene:"academy",agentId:data.selected});
+    setWalkers(spawnWalkers("academy"));
+    setDeanCourse(courseId);
+    setData(s=>setScene(s,"academy"));
+  }
+  function submitPractice(courseId,agentId,answers){
+    setData(s=>recordPractice(s,courseId,agentId,answers));
+    notify("Practice answer sheet recorded as SIMULATED / UNVERIFIED.");
+  }
   function changeScene(scene) {
     setTravelling(null);
     setRoom(null);
@@ -217,8 +231,8 @@ function App() {
     setRunning(false);
     try{
       if(file.size>1200000)throw new Error("File is over 1.2 MB");
-      const parsed=JSON.parse(await file.text());
-      if(!validateSnapshot(parsed))throw new Error("Invalid or unsupported LAU snapshot");
+      const parsed=upgradeSnapshot(JSON.parse(await file.text()));
+      if(!parsed)throw new Error("Invalid or unsupported LAU snapshot");
       setTravelling(null);setRoom(null);setWalkers(spawnWalkers(parsed.scene));
       setData(parsed);
       notify("Validated snapshot imported. Travel positions restart in this scene.");
@@ -233,7 +247,7 @@ function App() {
       <div className="header-actions"><span className="demo-pill"><span className="status-dot"/> SIMULATION ONLY · NO AI CONNECTED</span><button className="ghost-button" type="button" onClick={()=>setHelp(v=>!v)} aria-expanded={help}>How it works <span aria-hidden="true">ⓘ</span></button></div>
     </header>
 
-    {help&&<section className="help-panel"><strong>Welcome to LAU.</strong> Explore three scenes, select an agent, then click a building to walk there and enter an illustrated room. Building visits add simulated resources; interiors can queue practica. Press <b>Step</b> to advance one simulated tick, or <b>Play</b> to run automatically. Receipts mean a demo task completed, <b>not</b> that actual work happened. Nothing leaves this browser unless you export a file yourself.</section>}
+    {help&&<section className="help-panel"><strong>Welcome to LAU.</strong> Explore three scenes, select an agent, then click a building to walk there and enter an illustrated room. Building visits add simulated resources; interiors can queue practica. Dean\u0027s Office lets humans choose demo answers and creates records; no model is evaluated. Press <b>Step</b> to advance one simulated tick, or <b>Play</b> to run automatically. Receipts mean a demo task completed, <b>not</b> that actual work happened. Nothing leaves this browser unless you export a file yourself.</section>}
 
     <section className="metrics" aria-label="Campus overview">
       <Metric label="DEMO ASSIGNMENTS" value={completed+" / "+data.tasks.length} sub="Completed simulated tasks" icon="▥"/>
@@ -248,7 +262,16 @@ function App() {
           <div className="panel-title-row"><div><p className="overline">EXPLORE THE GROUNDS</p><h2>Your campus is alive</h2></div><span className="chapter">CHAPTER 01 / LIVING WORLD</span></div>
           <div className="scene-tabs" role="tablist" aria-label="Campus areas">{SCENES.map(s=><button key={s.id} type="button" role="tab" aria-selected={data.scene===s.id} className={"scene-tab "+(data.scene===s.id?"active":"")} onClick={()=>changeScene(s.id)}><span aria-hidden="true">{s.symbol}</span>{s.name}</button>)}</div>
           <div className="map-frame">
-            {room&&room.scene===data.scene
+            {room&&room.scene===data.scene&&room.id==="dean"
+              ? <DeanOffice
+                  key={deanCourse}
+                  data={data}
+                  initialCourse={deanCourse}
+                  initialAgent={room.agentId}
+                  onBack={()=>setRoom(null)}
+                  onSubmit={submitPractice}
+                />
+              : room&&room.scene===data.scene
               ? <RoomInterior
                   building={BUILDINGS[room.scene].find(b=>b.id===room.id)}
                   scene={room.scene}
@@ -270,7 +293,7 @@ function App() {
 
         <section className="panel academy-panel">
           <div className="panel-title-row"><div><p className="overline">CURRICULUM · PRACTICE MODE</p><h2>Course catalog</h2></div><span className="chapter">{COURSES.length} SHORT COURSES</span></div>
-          <div className="courses">{COURSES.map((course,i)=><article className="course" key={course.id}><div className="course-head"><span className="course-number">0{i+1}</span><span className="course-category">{course.category}</span></div><h3>{course.title}</h3><p>{course.description}</p><div className="course-foot"><span>INSTRUCTOR · {role(course.role).name}</span><button type="button" onClick={()=>{setData(s=>assignTask(s,"Practicum: "+course.title,course.role,3));notify("Demo practicum queued. No actual model training.");}}>Queue practicum ↗</button></div></article>)}</div>
+          <div className="courses">{COURSES.map((course,i)=><article className="course" key={course.id}><div className="course-head"><span className="course-number">0{i+1}</span><span className="course-category">{course.category}</span></div><h3>{course.title}</h3><p>{course.description}</p><div className="course-foot"><span>INSTRUCTOR · {role(course.role).name}</span><div className="course-actions"><button type="button" onClick={()=>{setData(s=>assignTask(s,"Practicum: "+course.title,course.role,3));notify("Demo practicum queued. No actual model training.");}}>Queue practicum ↗</button><button type="button" onClick={()=>openDean(course.id)}>Take demo assessment ↗</button></div></div></article>)}</div>
         </section>
 
         <section className="panel work-panel">
@@ -286,13 +309,23 @@ function App() {
 
         <section className="panel resources-panel"><div className="panel-title-row"><div><p className="overline">CAMPUS SUPPLIES</p><h2>Resources</h2></div></div><div className="resource-grid">{Object.entries(data.resources).map(([name,value])=><div className="resource-tile" key={name}><strong>{value}</strong><span>{name}</span></div>)}</div><p className="subtle resources-note">These are game resources. No money or compute is being used.</p></section>
 
-        <section className="panel ledger-panel"><div className="panel-title-row"><div><p className="overline">LEDGER ABOVE EGO</p><h2>Evidence & activity</h2></div><span className="chapter">{data.receipts.length} RECEIPTS</span></div><div className="receipt-label">PROVENANCE RULE: DEMO ≠ VERIFIED</div>{data.receipts.length>0&&<div className="receipts">{data.receipts.slice(0,5).map((r,i)=><div className="receipt" key={i}><div><b>{r.id}</b><span>SIMULATED / UNVERIFIED</span></div><p>{r.title}</p><small>{role(r.agent).name} · step {r.step}</small></div>)}</div>}<div className="event-head">CAMPUS JOURNAL</div><div className="event-log" aria-live="polite">{data.log.slice(0,12).map((line,i)=><div className={"event "+line.kind} key={i}><span>{line.at}</span><p>{line.msg}</p></div>)}</div></section>
+        <section className="panel students-panel">
+          <div className="panel-title-row"><div><p className="overline">DEAN COHERENCE · REGISTRAR</p><h2>Student records</h2></div><span className="chapter">DEMO CREDENTIALS ONLY</span></div>
+          <div className="student-card">
+            <div><strong>{selected.name}'s transcript</strong><span>{transcript(data.assessments,selected.id).passed} / 6 demo practice passes · {transcript(data.assessments,selected.id).attempts} attempts</span></div>
+            <p>No verified AI competencies or graduation credentials are awarded by this simulator.</p>
+            <button className="primary-button" type="button" onClick={()=>openDean()}>Visit the Dean's Office ↗</button>
+          </div>
+        </section>
+
+        <section className="panel ledger-panel"><div className="panel-title-row"><div><p className="overline">LEDGER ABOVE EGO</p><h2>Evidence & activity</h2></div><span className="chapter">{data.receipts.length} RECEIPTS</span></div><div className="receipt-label">PROVENANCE RULE: DEMO ≠ VERIFIED</div>
+          {data.assessments.length>0&&<div className="assessment-receipts"><div className="event-head">OPERATOR-SELECTED PRACTICE RECORDS · {data.assessments.length}</div>{data.assessments.slice(-3).reverse().map(r=><div className="practice-receipt" key={r.id}><strong>{r.id}</strong><span>{r.courseId} · {r.agentId} · {r.score}%</span><small>SIMULATED / UNVERIFIED · NOT A MODEL EVALUATION</small></div>)}</div>}{data.receipts.length>0&&<div className="receipts">{data.receipts.slice(0,5).map((r,i)=><div className="receipt" key={i}><div><b>{r.id}</b><span>SIMULATED / UNVERIFIED</span></div><p>{r.title}</p><small>{role(r.agent).name} · step {r.step}</small></div>)}</div>}<div className="event-head">CAMPUS JOURNAL</div><div className="event-log" aria-live="polite">{data.log.slice(0,12).map((line,i)=><div className={"event "+line.kind} key={i}><span>{line.at}</span><p>{line.msg}</p></div>)}</div></section>
 
         <section className="panel files-panel"><div className="panel-title-row"><div><p className="overline">YOUR CAMPUS, YOUR DATA</p><h2>Save & portability</h2></div></div><div className="file-actions"><button className="secondary-button" onClick={handleSave}>↓ Save here</button><button className="secondary-button" onClick={handleExport}>⇩ Export JSON</button><button className="secondary-button" onClick={()=>upload.current?.click()}>⇧ Import JSON</button><input ref={upload} type="file" accept=".json,application/json" className="sr-only" onChange={handleImport}/></div><button className="text-button reset-link" onClick={handleReset}>Reset campus demo</button><p className="subtle">Local browser storage only. No accounts or servers.</p></section>
       </aside>
     </div>
     {notice&&<div className="toast" role="status">{notice}<button type="button" aria-label="Dismiss notification" onClick={()=>setNotice("")}>×</button></div>}
-    <footer className="site-footer"><div><b>LAU</b> · LivingAgentUniversity · MIT open source</div><div>SIMULATED CAMPUS v0.2 <span>✦</span> BUILT WITH CURIOSITY, GOVERNED BY EVIDENCE</div></footer>
+    <footer className="site-footer"><div><b>LAU</b> · LivingAgentUniversity · MIT open source</div><div>SIMULATED CAMPUS v0.3 <span>✦</span> BUILT WITH CURIOSITY, GOVERNED BY EVIDENCE</div></footer>
   </div>;
 }
 export default App;

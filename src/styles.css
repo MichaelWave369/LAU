@@ -154,3 +154,78 @@ select,input{background:#14242e;border:1px solid #526976;border-radius:5px;color
 .interior-footer span{font-size:11px;color:#afc3c8}
 @media(max-width:620px){.walking-banner{right:8px;top:8px;left:8px;font-size:10px}.walking-banner button{font-size:10px}.interior-heading,.interior-footer{padding:12px}.interior-heading h3{font-size:18px}}
 @media(prefers-reduced-motion:reduce){.agent-nameplate{transition:none}}
+
+
+/* v0.3: the Dean's Office, operator-selected assessments, and per-resident records */
+.course-actions{display:flex;flex-direction:column;align-items:flex-end;gap:9px}
+.course-actions button{max-width:100%;white-space:normal;line-height:1.35}
+.student-card{padding:0 17px 18px;display:flex;flex-direction:column;align-items:flex-start;gap:9px}
+.student-card>div{display:flex;flex-direction:column;gap:6px}
+.student-card strong{font-size:14px}
+.student-card span{font:700 10px "Space Mono",monospace;color:#efcd8a;line-height:1.5}
+.student-card p{font-size:11px;color:#b6c8cd;line-height:1.6;margin:0 0 5px}
+.assessment-receipts{padding:0 15px 12px;display:flex;flex-direction:column;gap:7px}
+.assessment-receipts .event-head{padding:11px 0}
+.practice-receipt{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;background:#293f47;border:1px solid #667d75;border-radius:6px;padding:9px 10px}
+.practice-receipt strong{font:700 11px "Space Mono",monospace;color:#f0d09c}
+.practice-receipt span{font:700 10px "Space Mono",monospace;color:#c3d6d2}
+.practice-receipt small{flex:1 0 100%;color:#eccf8f;font:700 9px "Space Mono",monospace}
+.dean-console{max-height:min(87vh,1050px);overflow:auto;background:linear-gradient(160deg,#233b43,#1b313d);color:#f6f0e4}
+.dean-top{display:flex;align-items:center;gap:15px;padding:17px 20px;background:#304a4e;border-bottom:2px solid #d9bc85}
+.dean-top button{margin-left:auto;flex-shrink:0}
+.dean-seal{flex:0 0 68px;height:70px;border-radius:15px 15px 30px 30px;background:#e8ce9a;border:4px double #67827c;color:#243b45;display:grid;place-content:center;text-align:center;font:900 20px "Space Mono",monospace}
+.dean-seal span{font-size:17px}
+.dean-intro{flex:1;min-width:170px}
+.dean-intro h3{font-size:clamp(20px,2.6vw,28px);margin:5px 0 6px}
+.dean-intro p{font-size:12px;color:#c3d2d0;line-height:1.55;margin:0}
+.dean-notice{font:700 10px "Space Mono",monospace;line-height:1.6;letter-spacing:.2px;background:#3e392b;color:#f2d498;border-block:1px solid #756846;padding:12px 20px}
+.dean-forms{display:grid;grid-template-columns:1fr 1fr;gap:13px;padding:16px 20px 3px}
+.dean-forms label{display:flex;flex-direction:column;gap:7px;color:#e5cc99;font:700 10px "Space Mono",monospace;letter-spacing:.8px}
+.dean-forms select{width:100%;font:600 12px "DM Sans",system-ui,sans-serif}
+.dean-records{margin:16px 20px;padding:17px;border:1px solid #718478;border-radius:7px;background:#293f43}
+.dean-record-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.dean-record-head h4{font-size:19px;margin:4px 0}
+.dean-score{font-size:28px;font-weight:900;color:#f0d195;white-space:nowrap}
+.dean-score small{font:700 9px "Space Mono",monospace;color:#d1dfd6;margin-left:7px}
+.dean-records>p{font-size:11px;line-height:1.65;color:#b8cacd}
+.dean-transcript{display:grid;gap:6px}
+.dean-course-line{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) auto;gap:8px;align-items:center;padding:9px 11px;background:#1e343c;border:1px solid #4a6571;border-radius:4px}
+.dean-course-line strong{font-size:11px}
+.dean-course-line span{font:700 9px "Space Mono",monospace;color:#b1c8cb;line-height:1.5}
+.dean-course-line .demo-pass{color:#a7dfb7}
+.dean-course-line .demo-notyet{color:#e5cc99}
+.dean-quiz{padding:3px 20px 22px}
+.dean-section-title{display:flex;justify-content:space-between;gap:12px;align-items:center;border-bottom:1px solid #54707a;padding:7px 0 12px}
+.dean-section-title h4{font-size:21px;margin:4px 0 0}
+.dean-section-title>span{font:700 10px "Space Mono",monospace;color:#eacb8e}
+.dean-quiz>p{font-size:12px;color:#b7ccce;line-height:1.6;margin:12px 0}
+.dean-question{border:1px solid #627b82;border-radius:7px;margin:14px 0;padding:13px;background:#2a424b;min-width:0}
+.dean-question legend{font-weight:700;font-size:13px;line-height:1.55;padding:0 9px;max-width:98%}
+.dean-question legend span{font:700 10px "Space Mono",monospace;color:#f0cd8b;margin-right:8px}
+.dean-options{display:flex;flex-direction:column;gap:7px;margin-top:5px}
+.dean-choice{display:flex;align-items:center;gap:11px;background:#213641;border:1px solid #546d78;padding:10px 12px;border-radius:4px;cursor:pointer;font-size:12px;line-height:1.45}
+.dean-choice.chosen{border-color:#eac68b;background:#3a4a48}
+.dean-choice input{accent-color:#e4c38a;flex:none;width:16px;height:16px;margin:0}
+.dean-quiz-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:16px 0}
+.dean-result{background:#29463e;border:1px solid #83b49a;border-radius:6px;padding:14px}
+.dean-result-title{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.dean-result-title strong{font-size:19px;color:#b6e4bf}
+.dean-result-title span{font:700 9px "Space Mono",monospace;color:#f2d19e}
+.dean-result p{font-size:11px;color:#d0dfd7;line-height:1.55;margin:8px 0}
+.dean-answer-review{padding:8px 0;border-top:1px solid #5c8175}
+.dean-answer-review span{font-size:11px;font-weight:700}
+.dean-answer-review p{margin:4px 0 0}
+@media(max-width:680px){
+  .dean-top{padding:12px;gap:8px;flex-wrap:wrap}
+  .dean-top button{margin:0}
+  .dean-intro{min-width:0;flex-basis:calc(100% - 82px)}
+  .dean-seal{flex-basis:60px;height:65px}
+  .dean-forms{grid-template-columns:1fr;padding:12px}
+  .dean-records{margin:12px;padding:12px}
+  .dean-quiz{padding:2px 12px 17px}
+  .dean-notice{padding:11px 12px}
+  .dean-course-line{grid-template-columns:1fr auto}
+  .dean-course-line span:nth-child(2){grid-column:1}
+  .dean-course-line span:last-child{grid-column:2;grid-row:1}
+  .dean-section-title{align-items:flex-start;flex-direction:column}
+}
