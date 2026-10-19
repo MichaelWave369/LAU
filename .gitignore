@@ -5,3 +5,6 @@ dist/
 .env
 .env.*
 !.env.example
+
+# Generated local classroom evidence (never commit)
+reports/

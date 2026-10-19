@@ -229,3 +229,37 @@ select,input{background:#14242e;border:1px solid #526976;border-radius:5px;color
   .dean-course-line span:last-child{grid-column:2;grid-row:1}
   .dean-section-title{align-items:flex-start;flex-direction:column}
 }
+
+
+/* LAU v0.4: locally generated, imported model-output evidence */
+.living-body{padding:0 17px 18px}
+.living-warning{background:#3b372c;border:1px solid #91794c;border-radius:6px;color:#f0d9a8;padding:11px 12px;font-size:11px;line-height:1.65}
+.living-warning strong{color:#ffdf98}
+.living-steps{display:flex;gap:8px;margin:13px 0;flex-wrap:wrap}
+.living-steps span{border:1px solid #526d6e;background:#294443;border-radius:5px;padding:6px 8px;font:700 9px "Space Mono",monospace;color:#b9d6ca}
+.living-settings{display:grid;grid-template-columns:1fr;gap:11px;margin:15px 0}
+.living-settings label{display:flex;flex-direction:column;gap:7px;font:700 10px "Space Mono",monospace;color:#edcf98}
+.living-settings input,.living-settings select{width:100%;font-size:12px}
+.living-direction{font-size:11px;color:#b7c7ca;line-height:1.7}
+.living-direction code{color:#f1cd8f;font-size:11px}
+.living-command{border:1px solid #50776a;background:#11232c;border-radius:5px;padding:12px;font:700 11px/1.7 "Space Mono",monospace;color:#bce3bd;white-space:pre-wrap;overflow-wrap:anywhere}
+.living-invalid{color:#f2b4aa;font-size:12px}
+.living-buttons{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.living-buttons button{flex:1;min-width:130px}
+.living-notice{margin:13px 0;background:#294940;border:1px solid #699b82;border-radius:5px;padding:9px;font-size:11px;color:#dfecd9;line-height:1.5;overflow-wrap:anywhere}
+.living-results{border:1px solid #4c646d;border-radius:6px;margin-top:17px;overflow:hidden}
+.living-results-head{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#2a4447;padding:11px 12px;flex-wrap:wrap}
+.living-results-head strong{font-size:13px}
+.living-results-head span{font:700 9px "Space Mono",monospace;color:#e8cb94}
+.living-empty{padding:13px;color:#b1c4c9;font-size:11px;line-height:1.6;margin:0}
+.living-evidence{padding:12px}
+.living-evidence-title{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
+.living-evidence-title strong{font-size:12px;color:#d3ead8}
+.living-evidence-title span{font:700 12px "Space Mono",monospace;color:#efd49f}
+.living-evidence p{font-size:11px;color:#b7cbd0;line-height:1.5;margin:8px 0}
+.living-evidence .living-provenance{font:700 9px/1.6 "Space Mono",monospace;color:#f3d399}
+.living-evidence details{margin-top:10px;border-top:1px solid #4d6670;padding-top:10px}
+.living-evidence summary{color:#e4ca98;font-size:11px;cursor:pointer;font-weight:700}
+.living-evidence pre{font:400 10px/1.55 "Space Mono",monospace;white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow:auto;color:#d8e3e1}
+.living-disclaimer{margin:14px 0 0;font-size:10px;line-height:1.75;color:#9eb4b9}
+@media(max-width:620px){.living-body{padding:0 12px 15px}.living-command{font-size:10px}}

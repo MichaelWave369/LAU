@@ -1,6 +1,7 @@
 import { createPracticeRecord, validPracticeRecord } from "./assessment.js";
+import { validateImportedReports } from "./evidence.js";
 
-export const VERSION = 2;
+export const VERSION = 3;
 export const STORAGE_KEY = "lau-campus-v01";
 
 export const AGENTS = Object.freeze([
@@ -59,7 +60,7 @@ export function makeInitialState() {
       {id:1,title:"Draw the LAU campus plan",role:"nyx",status:"queued",remaining:3,effort:3},
       {id:2,title:"Map campus security boundaries",role:"rook",status:"queued",remaining:4,effort:4}
     ],
-    receipts:[], assessments:[], log:[{at:"00:00",kind:"info",msg:"LAU opened. Everything here is SIMULATED until a real adapter is connected."}]
+    receipts:[], assessments:[], localRuns:[], log:[{at:"00:00",kind:"info",msg:"LAU opened. Everything here is SIMULATED until a real adapter is connected."}]
   };
 }
 function stamp() { return new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}); }
@@ -131,6 +132,16 @@ export function recordPractice(state,courseId,agentId,answers,at=new Date().toIS
   event(s,"Operator entered demo answers for "+agentId+" in "+courseId+": "+attempt.score+"% ("+(attempt.passed?"demo pass":"retry")+"). SIMULATED / UNVERIFIED.","receipt");
   return s;
 }
+// A file import is a user-selected claim about a local run; it is NOT independent verification.
+export function addLocalReport(state,record){
+  if(!validateImportedReports([record])||!Array.isArray(state.localRuns)||
+    state.localRuns.length>=80||state.localRuns.some(r=>r.id===record.id))return state;
+  const next=copy(state);
+  next.localRuns.push(record);
+  event(next,"Imported local runner REPORT for "+record.agentId+": "+record.courseId+" ("+
+    (record.grade?.score??"invalid response")+"). Origin unverified; hash-checked on import.","receipt");
+  return next;
+}
 export function setScene(state,scene) { return SCENES.has(scene)?{...state,scene}:state; }
 export function toggleSeason(state) { return {...state,season:state.season==="autumn"?"winter":"autumn"}; }
 export function clearCompleted(state) {
@@ -154,6 +165,7 @@ export function validateSnapshot(s) {
   if(!Array.isArray(s.assessments)||s.assessments.length>200||
       !s.assessments.every(r=>validPracticeRecord(r,IDS)))return false;
   if(new Set(s.assessments.map(r=>r.id)).size!==s.assessments.length)return false;
+  if(!validateImportedReports(s.localRuns))return false;
   if (!Array.isArray(s.log)||s.log.length>80||!s.log.every(e=>e&&short(e.at,50)&&short(e.msg,240)&&["info","receipt"].includes(e.kind))) return false;
   return true;
 }
@@ -161,8 +173,13 @@ export function validateSnapshot(s) {
 export function upgradeSnapshot(raw){
   if(!raw||typeof raw!=="object")return null;
   if(raw.version===VERSION)return validateSnapshot(raw)?raw:null;
-  if(raw.version===1&&!Object.prototype.hasOwnProperty.call(raw,"assessments")){
-    const upgraded={...raw,version:VERSION,assessments:[]};
+  if(raw.version===2&&!Object.prototype.hasOwnProperty.call(raw,"localRuns")){
+    const upgraded={...raw,version:VERSION,localRuns:[]};
+    return validateSnapshot(upgraded)?upgraded:null;
+  }
+  if(raw.version===1&&!Object.prototype.hasOwnProperty.call(raw,"assessments")&&
+    !Object.prototype.hasOwnProperty.call(raw,"localRuns")){
+    const upgraded={...raw,version:VERSION,assessments:[],localRuns:[]};
     return validateSnapshot(upgraded)?upgraded:null;
   }
   return null;
