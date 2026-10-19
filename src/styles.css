@@ -134,3 +134,23 @@ select,input{background:#14242e;border:1px solid #526976;border-radius:5px;color
 @media(max-width:870px){.columns{grid-template-columns:1fr}.right-column{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.ledger-panel,.files-panel{grid-column:1/-1}.residents{grid-template-columns:1fr 1fr}}
 @media(max-width:620px){.app{padding:14px 10px}.identity{gap:11px}.crest{flex-basis:55px;height:62px}.crest span{font-size:17px}h1{font-size:25px;letter-spacing:-1px}.header-actions{width:100%}.metrics{grid-template-columns:1fr 1fr;gap:8px}.metric{min-height:96px;padding:12px}.metric strong{font-size:25px}.metric-heading{font-size:8px}.panel-title-row{padding:16px 13px 12px}.panel h2{font-size:18px}.scene-tabs{padding:0 10px 10px}.scene-tab{font-size:10px;padding:9px 3px;gap:3px;flex-wrap:wrap}.map-toolbar{padding:12px}.map-caption{padding:0 12px 14px}.courses{grid-template-columns:1fr;padding:0 12px 12px}.course{padding:12px}.task-form{grid-template-columns:minmax(0,1fr) 86px;gap:7px;padding:0 12px 12px}.task-form button{grid-column:1/-1}.task-list{padding:0 12px}.board-foot{padding:12px}.right-column{display:flex}.residents{grid-template-columns:1fr 1fr}.site-footer{font-size:9px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+
+/* LAU v0.2: corridor-based walking and accessible room interiors */
+.agent-nameplate{opacity:0;pointer-events:none;transition:opacity .16s ease}
+.character.chosen .agent-nameplate,.character:hover .agent-nameplate,.character:focus-visible .agent-nameplate{opacity:1}
+.route-hint{fill:none;stroke:#ffe4a1;stroke-width:6;stroke-dasharray:12 9;stroke-linecap:round;stroke-linejoin:round;opacity:.9;pointer-events:none}
+.walking-banner{position:absolute;z-index:3;right:14px;top:14px;display:flex;align-items:center;gap:12px;max-width:calc(100% - 28px);background:#152d3aeF;color:#f8eac8;border:1px solid #e5c68c;border-radius:6px;padding:9px 12px;font-size:12px;font-weight:700;box-shadow:0 5px 20px #10212a55}
+.walking-banner button{background:#e3bd7d;color:#1a303d;font-size:11px;font-weight:800;border:0;border-radius:4px;padding:6px 9px;white-space:nowrap}
+.interior-wrapper{background:#263c45}
+.interior-heading{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:14px 18px;background:#273c48;flex-wrap:wrap}
+.interior-heading h3{font-size:22px;margin:4px 0;font-weight:800}
+.interior-heading p{font-size:12px;color:#b5c6c7;margin:0}
+.interior-kicker{font:700 10px "Space Mono",monospace;letter-spacing:.7px;color:#f4d39a}
+.room-canvas{display:block;width:100%;height:auto;max-height:490px;aspect-ratio:1050/595;object-fit:contain}
+.interior-footer{background:#1b2e39;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;border-top:1px solid #60717a}
+.interior-footer>div{display:flex;flex-direction:column;gap:5px}
+.interior-footer strong{font-size:14px;color:#f6e7c8}
+.interior-footer span{font-size:11px;color:#afc3c8}
+@media(max-width:620px){.walking-banner{right:8px;top:8px;left:8px;font-size:10px}.walking-banner button{font-size:10px}.interior-heading,.interior-footer{padding:12px}.interior-heading h3{font-size:18px}}
+@media(prefers-reduced-motion:reduce){.agent-nameplate{transition:none}}

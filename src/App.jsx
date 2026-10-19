@@ -4,6 +4,8 @@ import {
   advanceState, visitBuilding, setScene, toggleSeason, clearCompleted,
   validateSnapshot, snapshot
 } from "./sim.js";
+import { spawnWalkers, pathToBuilding, travelOneStep } from "./navigation.js";
+import RoomInterior from "./RoomInterior.jsx";
 
 const SCENES = [
   {id:"grounds",name:"Campus Grounds",symbol:"⌂",sub:"Explore the living town"},
@@ -49,15 +51,16 @@ function Building({item,scene,onVisit}) {
     </g>
   );
 }
-function Character({agent,record,selected,working,onSelect,scene}) {
+function Character({agent,record,position,selected,working,onSelect,scene}) {
   const [x,y]=agent[scene];
-  const dx=record?.dx||0,dy=record?.dy||0;
+  const shownX=position?.x??(x+(record?.dx||0));
+  const shownY=position?.y??(y+(record?.dy||0));
   return (
     <g role="button" tabIndex={0} aria-label={"Select "+agent.name}
       className={"character"+(selected?" chosen":"")}
       onClick={()=>onSelect(agent.id)}
       onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();onSelect(agent.id);}}}
-      transform={"translate("+(x+dx)+","+(y+dy)+")"}>
+      transform={"translate("+shownX+","+shownY+")"}>
       <ellipse cy="28" rx="26" ry="8" fill="#0e2530" opacity=".35"/>
       {selected&&<circle r="37" cy="-3" fill="none" stroke="#ffde8d" strokeWidth="4" strokeDasharray="7 5" className="halo"/>}
       <path d="M -18 -11 L -20 23 L 20 23 L 18 -11 Z" fill={agent.color} stroke="#263e4d" strokeWidth="4"/>
@@ -70,8 +73,10 @@ function Character({agent,record,selected,working,onSelect,scene}) {
       <rect x="-14" y="22" width="9" height="10" rx="2" fill="#283e4d"/>
       <rect x="5" y="22" width="9" height="10" rx="2" fill="#283e4d"/>
       <text x="0" y="10" textAnchor="middle" fontSize="12" fontWeight="900" fill="#243d4a">{agent.initials}</text>
-      <rect x="-39" y="36" width="78" height="21" rx="5" fill="#142b3a" stroke={agent.color} strokeWidth="2"/>
-      <text x="0" y="51" textAnchor="middle" fontSize="13" fill="#f8f4e7" fontWeight="bold">{agent.name}</text>
+      <g className="agent-nameplate">
+        <rect x="-39" y="36" width="78" height="21" rx="5" fill="#142b3a" stroke={agent.color} strokeWidth="2"/>
+        <text x="0" y="51" textAnchor="middle" fontSize="13" fill="#f8f4e7" fontWeight="bold">{agent.name}</text>
+      </g>
       {working&&<g transform="translate(26,-64)"><circle r="13" fill="#f9cb80" stroke="#293e4d" strokeWidth="3"/><text y="4" textAnchor="middle" fontSize="14" fill="#263e4d" fontWeight="bold">!</text></g>}
       <title>{agent.name+" · "+agent.role}</title>
     </g>
@@ -111,12 +116,15 @@ function AcademyDecoration({season}) {
     <text x="34" y="47" fontSize="20" fontWeight="900" fill="#f9eac6">LAU ACADEMY · East Wing</text>
   </>;
 }
-function CampusMap({state,choose,visit}) {
+function CampusMap({state,choose,visit,walkers}) {
   const scene=state.scene;
   return <svg className="campus-map" viewBox="0 0 1050 640" role="img" aria-label={"Interactive "+scene+" map with campus buildings and six agents"}>
     {scene==="grounds"?<GroundsDecoration season={state.season}/>:scene==="office"?<OfficeDecoration/>:<AcademyDecoration season={state.season}/>}
     {BUILDINGS[scene].map(b=><Building key={b.id} item={b} scene={scene} onVisit={visit}/>)}
-    {AGENTS.map(a=><Character key={a.id} agent={a} record={state.agents.find(s=>s.id===a.id)} selected={state.selected===a.id} working={state.tasks.some(t=>t.role===a.id&&t.status==="working")} onSelect={choose} scene={scene}/>)}
+    {AGENTS.map(a=>walkers[a.id]?.route.length>0
+      ? <polyline key={"route-"+a.id} className="route-hint" points={[[walkers[a.id].x,walkers[a.id].y],...walkers[a.id].route].map(v=>v.x+","+v.y).join(" ")}/>
+      : null)}
+    {AGENTS.map(a=><Character key={a.id} agent={a} record={state.agents.find(s=>s.id===a.id)} position={walkers[a.id]} selected={state.selected===a.id} working={state.tasks.some(t=>t.role===a.id&&t.status==="working")} onSelect={choose} scene={scene}/>)}
   </svg>;
 }
 function Metric({label,value,sub,icon}) {
@@ -130,12 +138,72 @@ function App() {
   const [taskRole,setTaskRole]=useState("forge");
   const [notice,setNotice]=useState("");
   const [help,setHelp]=useState(false);
+  const [walkers,setWalkers]=useState(()=>spawnWalkers("grounds"));
+  const [travelling,setTravelling]=useState(null);
+  const [room,setRoom]=useState(null);
+  const travelSerial=useRef(0);
+  const arrivedSerial=useRef(0);
   const upload=useRef(null);
   useEffect(()=>{
     if(!running) return undefined;
     const interval=setInterval(()=>setData(s=>advanceState(s)),speed);
     return ()=>clearInterval(interval);
   },[running,speed]);
+  useEffect(()=>{
+    if(!travelling)return undefined;
+    const interval=setInterval(()=>{
+      setWalkers(old=>{
+        const actor=old[travelling.agentId];
+        if(!actor||actor.route.length===0)return old;
+        return {...old,[travelling.agentId]:travelOneStep(actor)};
+      });
+    },85);
+    return ()=>clearInterval(interval);
+  },[travelling]);
+  useEffect(()=>{
+    if(!travelling||data.scene!==travelling.scene)return;
+    const actor=walkers[travelling.agentId];
+    if(!actor||actor.arrived!==travelling.buildingId||arrivedSerial.current===travelling.serial)return;
+    arrivedSerial.current=travelling.serial;
+    setRoom({id:travelling.buildingId,scene:travelling.scene,agentId:travelling.agentId});
+    setData(v=>visitBuilding(v,travelling.buildingId));
+    setTravelling(null);
+  },[travelling,walkers,data.scene]);
+
+  function changeScene(scene) {
+    setTravelling(null);
+    setRoom(null);
+    setWalkers(spawnWalkers(scene));
+    setData(s=>setScene(s,scene));
+  }
+  function enterBuilding(buildingId){
+    const actorId=data.selected;
+    const actor=walkers[actorId];
+    if(!actor)return;
+    const path=pathToBuilding(data.scene,actor,buildingId);
+    if(!path.length){
+      setRoom({id:buildingId,scene:data.scene,agentId:actorId});
+      setData(s=>visitBuilding(s,buildingId));
+      return;
+    }
+    const serial=++travelSerial.current;
+    setRoom(null);
+    setWalkers(prev=>({...prev,[actorId]:{...prev[actorId],route:path,destination:buildingId,arrived:null}}));
+    setTravelling({serial,scene:data.scene,buildingId,agentId:actorId});
+  }
+  function cancelWalk(){
+    if(travelling){
+      const id=travelling.agentId;
+      setWalkers(prev=>({...prev,[id]:{...prev[id],route:[],destination:null,arrived:null}}));
+    }
+    setTravelling(null);
+  }
+  function resetCampus(){
+    setRunning(false);setTravelling(null);setRoom(null);setWalkers(spawnWalkers("grounds"));
+    setData(makeInitialState());
+    try{localStorage.removeItem(STORAGE_KEY);}catch{/* blocked */}
+    notify("Campus reset.");
+  }
   const completed=data.tasks.filter(t=>t.status==="done").length;
   const selected=role(data.selected);
   const selectedStats=data.agents.find(a=>a.id===selected.id);
@@ -151,20 +219,21 @@ function App() {
       if(file.size>1200000)throw new Error("File is over 1.2 MB");
       const parsed=JSON.parse(await file.text());
       if(!validateSnapshot(parsed))throw new Error("Invalid or unsupported LAU snapshot");
+      setTravelling(null);setRoom(null);setWalkers(spawnWalkers(parsed.scene));
       setData(parsed);
-      notify("Validated snapshot imported. Simulation is paused.");
+      notify("Validated snapshot imported. Travel positions restart in this scene.");
     }catch(err){notify("Import rejected: "+err.message);}
     finally{e.target.value="";}
   };
   const handleAdd=(e)=>{e.preventDefault();if(!taskTitle.trim())return;const previous=data;const next=assignTask(previous,taskTitle,taskRole);if(next===previous){notify("Task must be 1-100 characters and the queue has room for 150.");return;}setData(next);setTaskTitle("");notify("Assignment queued as simulation.");};
-  const handleReset=()=>{if(window.confirm("Reset this LAU demo? Browser save will be removed.")){setRunning(false);setData(makeInitialState());try{localStorage.removeItem(STORAGE_KEY);}catch{/* blocked */}notify("Campus reset.");}};
+  const handleReset=()=>{if(window.confirm("Reset this LAU demo? Browser save will be removed.")) resetCampus();};
   return <div className="app">
     <header className="site-header">
       <div className="identity"><div className="crest" aria-hidden="true"><span>LAU</span><small>✦</small></div><div><p className="overline">THE LIVING AGENT CAMPUS · EST. 2026</p><h1>LivingAgent<span>University</span></h1><p className="header-sub">Where little agents practice doing big things together.</p></div></div>
       <div className="header-actions"><span className="demo-pill"><span className="status-dot"/> SIMULATION ONLY · NO AI CONNECTED</span><button className="ghost-button" type="button" onClick={()=>setHelp(v=>!v)} aria-expanded={help}>How it works <span aria-hidden="true">ⓘ</span></button></div>
     </header>
 
-    {help&&<section className="help-panel"><strong>Welcome to LAU.</strong> Explore the three scenes, click buildings to collect simulated resources, select an agent, and queue assignments or course practica. Press <b>Step</b> to advance one simulated tick, or <b>Play</b> to run automatically. Receipts mean a demo task completed, <b>not</b> that actual work happened. Nothing leaves this browser unless you export a file yourself.</section>}
+    {help&&<section className="help-panel"><strong>Welcome to LAU.</strong> Explore three scenes, select an agent, then click a building to walk there and enter an illustrated room. Building visits add simulated resources; interiors can queue practica. Press <b>Step</b> to advance one simulated tick, or <b>Play</b> to run automatically. Receipts mean a demo task completed, <b>not</b> that actual work happened. Nothing leaves this browser unless you export a file yourself.</section>}
 
     <section className="metrics" aria-label="Campus overview">
       <Metric label="DEMO ASSIGNMENTS" value={completed+" / "+data.tasks.length} sub="Completed simulated tasks" icon="▥"/>
@@ -177,10 +246,26 @@ function App() {
       <main className="left-column">
         <section className="panel map-panel" aria-label="Campus map">
           <div className="panel-title-row"><div><p className="overline">EXPLORE THE GROUNDS</p><h2>Your campus is alive</h2></div><span className="chapter">CHAPTER 01 / LIVING WORLD</span></div>
-          <div className="scene-tabs" role="tablist" aria-label="Campus areas">{SCENES.map(s=><button key={s.id} type="button" role="tab" aria-selected={data.scene===s.id} className={"scene-tab "+(data.scene===s.id?"active":"")} onClick={()=>setData(v=>setScene(v,s.id))}><span aria-hidden="true">{s.symbol}</span>{s.name}</button>)}</div>
-          <div className="map-frame"><CampusMap state={data} choose={id=>setData(s=>({...s,selected:id}))} visit={id=>setData(s=>visitBuilding(s,id))}/><div className="corner-note">{data.season.toUpperCase()} TERM <span>·</span> {data.scene.toUpperCase()}</div><div className="map-bottom-note">Click a building or agent to interact <span>◈</span> All outcomes simulated</div></div>
+          <div className="scene-tabs" role="tablist" aria-label="Campus areas">{SCENES.map(s=><button key={s.id} type="button" role="tab" aria-selected={data.scene===s.id} className={"scene-tab "+(data.scene===s.id?"active":"")} onClick={()=>changeScene(s.id)}><span aria-hidden="true">{s.symbol}</span>{s.name}</button>)}</div>
+          <div className="map-frame">
+            {room&&room.scene===data.scene
+              ? <RoomInterior
+                  building={BUILDINGS[room.scene].find(b=>b.id===room.id)}
+                  scene={room.scene}
+                  agent={role(room.agentId)}
+                  onBack={()=>setRoom(null)}
+                  onPractice={()=>{setData(s=>assignTask(s,"Practice at "+BUILDINGS[room.scene].find(b=>b.id===room.id).title,room.agentId,3));notify("Simulated practice assignment queued. No AI training occurred.");}}
+                />
+              : <CampusMap state={data} walkers={walkers} choose={id=>setData(s=>({...s,selected:id}))} visit={enterBuilding}/>}
+            {travelling&&!room&&<div className="walking-banner" role="status">
+              <span>{role(travelling.agentId).name} is walking to {BUILDINGS[travelling.scene].find(b=>b.id===travelling.buildingId)?.title}…</span>
+              <button type="button" onClick={cancelWalk}>Cancel walk</button>
+            </div>}
+            {!room&&<div className="corner-note">{data.season.toUpperCase()} TERM <span>·</span> {data.scene.toUpperCase()}</div>}
+            {!room&&<div className="map-bottom-note">Click a building or agent to interact <span>◈</span> All outcomes simulated</div>}
+          </div>
           <div className="map-toolbar"><div className="transport"><button className="primary-button" onClick={()=>setRunning(r=>!r)}>{running?"Ⅱ Pause":"▶ Play"} simulation</button><button className="secondary-button" disabled={running} onClick={()=>setData(s=>advanceState(s))}>↻ Step</button><select aria-label="Simulation speed" value={speed} onChange={e=>setSpeed(Number(e.target.value))}><option value={1200}>Fast</option><option value={2200}>Normal</option><option value={3800}>Chill</option></select></div><button className="secondary-button" onClick={()=>setData(s=>toggleSeason(s))}>☁ Switch season</button></div>
-          <p className="map-caption">The grounds are for discovery, BotOffice is the operations wing, and the Academy is where practice assignments begin. Same agents, same ledger.</p>
+          <p className="map-caption">Choose an agent, then click a building to watch them walk along the campus corridors and enter its illustrated interior. Walking positions restart on reload; task records persist with Save.</p>
         </section>
 
         <section className="panel academy-panel">
@@ -207,7 +292,7 @@ function App() {
       </aside>
     </div>
     {notice&&<div className="toast" role="status">{notice}<button type="button" aria-label="Dismiss notification" onClick={()=>setNotice("")}>×</button></div>}
-    <footer className="site-footer"><div><b>LAU</b> · LivingAgentUniversity · MIT open source</div><div>SIMULATED CAMPUS v0.1 <span>✦</span> BUILT WITH CURIOSITY, GOVERNED BY EVIDENCE</div></footer>
+    <footer className="site-footer"><div><b>LAU</b> · LivingAgentUniversity · MIT open source</div><div>SIMULATED CAMPUS v0.2 <span>✦</span> BUILT WITH CURIOSITY, GOVERNED BY EVIDENCE</div></footer>
   </div>;
 }
 export default App;
