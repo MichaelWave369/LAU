@@ -4,7 +4,7 @@
 
 An original, cozy **React + Vite** simulation inspired by the BotTown and BotOffice prototypes. Explore campus grounds, visit the office, and give six familiar characters simulated coursework and assignments.
 
-**Important:** The campus and Dean's Office are simulations. v0.4 adds a separately invoked local Ollama evaluation CLI; imported results remain UNVERIFIED reported evidence. It does not run language models, write code, call GitHub, spend money, perform real training, or deploy anything. Every "completed" activity creates a receipt marked SIMULATED / UNVERIFIED. The app never claims simulated work is real.
+**Important:** The campus and Dean's Office are simulations. The locally executed Ollama CLI supports repeated evidence collection. Imported results remain UNVERIFIED reported evidence, not model certifications. It does not run language models, write code, call GitHub, spend money, perform real training, or deploy anything. Every "completed" activity creates a receipt marked SIMULATED / UNVERIFIED. The app never claims simulated work is real.
 
 ## Run locally
 
@@ -51,14 +51,14 @@ This repo uses base path /LAU/ and includes a GitHub Actions workflow. After mer
 
 MIT licensed. Original concept by Michael Hughes.
 
-## v0.4 navigation details
+## v0.5 navigation details
 
 Select a resident, click a building, and watch them walk using deterministic orthogonal waypoints aligned with the scene's footpaths. The room opens when they reach the entrance. **Cancel walk** stops before arrival, without crediting the resource. Switching scenes resets visual walking positions for that scene; simulation tasks and unverified demo receipts remain in normal saved state.
 
 These are **illustrated corridors**, not physics-based collision avoidance. The room art is a themed interior and not a 3D world. No real agent movement, access rights, or course completion is implied.
 
 
-## v0.4 · The Dean's Office and Student Records
+## v0.5 · The Dean's Office and Student Records
 
 The Academy includes a Dean's Office. Choose a resident, choose a course, and select the candidate answers to three scenario questions. A fixed, deterministic rubric grades **the human's chosen answers**. A score of at least 67% records a *demo practice pass* on that agent's fictional transcript. The record stores the selections, grading method, course, timestamp, score, and **SIMULATED / UNVERIFIED** provenance.
 
@@ -66,13 +66,13 @@ The Academy includes a Dean's Office. Choose a resident, choose a course, and se
 - Neither the answers nor the scores come from a running AI model. LAU does not measure learning, modify model weights, assign real competency, or grant real graduation credentials.
 - The six courses are educational demos. Practice badges are not proof of skill.
 - Assessment records reject forged verification flags and inconsistent scores when imported.
-- Browser saves from v0.1/v0.2 are upgraded in memory to the v0.4 schema while preserving previous tasks/receipts; use Save here to persist the upgrade.
+- Browser saves from v0.1/v0.2 are upgraded in memory to the v0.5 schema while preserving previous tasks/receipts; use Save here to persist the upgrade.
 - There is no backend or external API, and no secrets should be pasted into course responses.
 
 A future real evaluation pipeline requires a supervised model adapter, a reproducible test harness, signed/attested results, owner permission gates, and an independent verification path before issuing actual certificates.
 
 
-## v0.4 · The Living Classroom (opt-in local Ollama)
+## v0.5 · The Living Classroom (opt-in local Ollama)
 
 The **Living Classroom** sends one fixed-rubric course to an actual *locally installed* Ollama model when the user explicitly runs the local Node CLI. The runner asks the model to choose among options, preserves the raw response, grades it deterministically and writes a JSON report with SHA-256 hashes. **The GitHub Pages app never contacts localhost**, it only imports a report you manually select.
 
@@ -111,4 +111,32 @@ Optional flags: `--timeout 180000` for slow models (up to 300000 ms); `--out pat
 
 GitHub Pages is public, and a public page should not silently control localhost services. Browser private-network and cross-origin limitations also make direct access fragile. Manual file exchange is explicit, portable and testable. Any later optional local broker should be loopback-bound, authenticated, origin restricted and human-approved.
 
-A future real credential requires protected reproducible evaluations, controlled scoring, pinned model digests, verified execution evidence and independent attestation. v0.4 deliberately does not claim those capabilities.
+A future real credential requires protected reproducible evaluations, controlled scoring, pinned model digests, verified execution evidence and independent attestation. v0.5 deliberately does not claim those capabilities.
+
+
+## v0.5 · Supervised repeated samples and descriptive model profiles
+
+The separate **local, opt-in** batch evaluator asks the selected installed Ollama model a small fixed set of multiple-choice questions repeatedly. Calls are bounded and **sequential**, not concurrent. It creates one JSON evidence file for every successful local request; errors are clearly reported and never counted as successes.
+
+To start with three trials on two courses, on the PC running Ollama:
+
+    npm run evaluate -- --model granite4.2:8b --courses records,research --trials 3 --agent vault
+
+To ask two samples in all six courses:
+
+    npm run evaluate -- --model qwen3.5:9b --all --trials 2 --agent scout
+
+Options: --model (required), --courses (comma-separated) **or** --all, --trials 1..5 (default 3), --agent (default forge), --timeout milliseconds (1000..300000, default 120000). Maximum **30 local requests per command**. The script does not run automatically, launch Ollama, download models, overwrite prior files, execute model code, or alter weights.
+
+After running, select **The Living Classroom → Import report JSONs**. You can multi-select up to **30 JSON reports**; each is checked for schema, original prompt/response hashes, report hash and grading consistency *before any are added*. Invalid batches import zero records. Existing imported reports are preserved separately from simulated student transcripts, with an overall cap of 80.
+
+The new **Model capability profiles** view groups reports by their *claimed* Ollama model tag and course. It displays the number of samples, proportion of parseable responses, mean/median scores on parseable reports, best/worst score and how many trials reached the course's fixed practice threshold. Empty courses say **NOT TESTED**. It never awards a verified competency, model badge, graduation or authorization to act.
+
+### Interpreting results
+
+- The same three fixed published questions are repeated. Repeated successes may indicate format compliance or memorization, **not learning, model weight updates, or generalization**.
+- A model name in JSON is self-reported. SHA-256 hashes detect file changes but are **not signatures or proof of origin**.
+- A run can be incomplete. Failed requests appear as console errors and are NOT represented as completed evidence; the profile view only describes the imported files.
+- Valid-response rates are based on imported reports, not all attempted or failed requests. Mean/median scores **exclude invalid responses** and show sample sizes.
+- Results are local-reported and unverified. A proper future certification system requires protected held-out sets, independent measurement, environment/model pinning, anti-leak controls, attestation, and human approval.
+- The batch runner disables HTTP redirect-following and keeps the endpoint fixed at http://127.0.0.1:11434/api/generate. Requests cannot be redirected to a remote service by Ollama.

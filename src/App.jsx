@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import {
   AGENTS, BUILDINGS, COURSES, STORAGE_KEY, makeInitialState, assignTask,
   advanceState, visitBuilding, setScene, toggleSeason, clearCompleted,
-  validateSnapshot, snapshot, upgradeSnapshot, recordPractice, addLocalReport
+  validateSnapshot, snapshot, upgradeSnapshot, recordPractice, addLocalReports
 } from "./sim.js";
 import { spawnWalkers, pathToBuilding, travelOneStep } from "./navigation.js";
 import RoomInterior from "./RoomInterior.jsx";
 import DeanOffice from "./DeanOffice.jsx";
 import LivingClassroom from "./LivingClassroom.jsx";
+import CapabilityProfiles from "./CapabilityProfiles.jsx";
 import { transcript } from "./assessment.js";
 
 const SCENES = [
@@ -181,8 +182,8 @@ function App() {
     setDeanCourse(courseId);
     setData(s=>setScene(s,"academy"));
   }
-  function importReportedRun(record){
-    const next=addLocalReport(data,record);
+  function importReportedRuns(records){
+    const next=addLocalReports(data,records);
     if(next===data)return false;
     setData(next);
     return true;
@@ -254,7 +255,7 @@ function App() {
       <div className="header-actions"><span className="demo-pill"><span className="status-dot"/> SIMULATION ONLY · NO AI CONNECTED</span><button className="ghost-button" type="button" onClick={()=>setHelp(v=>!v)} aria-expanded={help}>How it works <span aria-hidden="true">ⓘ</span></button></div>
     </header>
 
-    {help&&<section className="help-panel"><strong>Welcome to LAU.</strong> Explore three scenes, select an agent, then click a building to walk there and enter an illustrated room. Building visits add simulated resources; interiors can queue practica. Dean's Office lets humans choose demo answers. The Living Classroom can import reports from an explicitly run local Ollama CLI, but the webpage never connects to your PC and imported claims remain unverified. Press <b>Step</b> to advance one simulated tick, or <b>Play</b> to run automatically. Receipts mean a demo task completed, <b>not</b> that actual work happened. Nothing leaves this browser unless you export a file yourself.</section>}
+    {help&&<section className="help-panel"><strong>Welcome to LAU.</strong> Explore three scenes, select an agent, then click a building to walk there and enter an illustrated room. Building visits add simulated resources; interiors can queue practica. Dean's Office lets humans choose demo answers. The Living Classroom can import batches from an explicitly run, sequential local Ollama CLI and display descriptive model-output profiles. The webpage never connects to your PC; reports stay unverified and cannot certify model skills. Press <b>Step</b> to advance one simulated tick, or <b>Play</b> to run automatically. Receipts mean a demo task completed, <b>not</b> that actual work happened. Nothing leaves this browser unless you export a file yourself.</section>}
 
     <section className="metrics" aria-label="Campus overview">
       <Metric label="DEMO ASSIGNMENTS" value={completed+" / "+data.tasks.length} sub="Completed simulated tasks" icon="▥"/>
@@ -325,7 +326,8 @@ function App() {
           </div>
         </section>
 
-        <LivingClassroom reports={data.localRuns} onImport={importReportedRun}/>
+        <LivingClassroom reports={data.localRuns} onImportReports={importReportedRuns}/>
+        <CapabilityProfiles reports={data.localRuns}/>
 
         <section className="panel ledger-panel"><div className="panel-title-row"><div><p className="overline">LEDGER ABOVE EGO</p><h2>Evidence & activity</h2></div><span className="chapter">{data.receipts.length} RECEIPTS</span></div><div className="receipt-label">PROVENANCE RULE: DEMO ≠ VERIFIED</div>
           {data.assessments.length>0&&<div className="assessment-receipts"><div className="event-head">OPERATOR-SELECTED PRACTICE RECORDS · {data.assessments.length}</div>{data.assessments.slice(-3).reverse().map(r=><div className="practice-receipt" key={r.id}><strong>{r.id}</strong><span>{r.courseId} · {r.agentId} · {r.score}%</span><small>SIMULATED / UNVERIFIED · NOT A MODEL EVALUATION</small></div>)}</div>}{data.receipts.length>0&&<div className="receipts">{data.receipts.slice(0,5).map((r,i)=><div className="receipt" key={i}><div><b>{r.id}</b><span>SIMULATED / UNVERIFIED</span></div><p>{r.title}</p><small>{role(r.agent).name} · step {r.step}</small></div>)}</div>}<div className="event-head">CAMPUS JOURNAL</div><div className="event-log" aria-live="polite">{data.log.slice(0,12).map((line,i)=><div className={"event "+line.kind} key={i}><span>{line.at}</span><p>{line.msg}</p></div>)}</div></section>
@@ -334,7 +336,7 @@ function App() {
       </aside>
     </div>
     {notice&&<div className="toast" role="status">{notice}<button type="button" aria-label="Dismiss notification" onClick={()=>setNotice("")}>×</button></div>}
-    <footer className="site-footer"><div><b>LAU</b> · LivingAgentUniversity · MIT open source</div><div>SIMULATED CAMPUS v0.4 <span>✦</span> BUILT WITH CURIOSITY, GOVERNED BY EVIDENCE</div></footer>
+    <footer className="site-footer"><div><b>LAU</b> · LivingAgentUniversity · MIT open source</div><div>SIMULATED CAMPUS v0.5 <span>✦</span> BUILT WITH CURIOSITY, GOVERNED BY EVIDENCE</div></footer>
   </div>;
 }
 export default App;

@@ -263,3 +263,29 @@ select,input{background:#14242e;border:1px solid #526976;border-radius:5px;color
 .living-evidence pre{font:400 10px/1.55 "Space Mono",monospace;white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow:auto;color:#d8e3e1}
 .living-disclaimer{margin:14px 0 0;font-size:10px;line-height:1.75;color:#9eb4b9}
 @media(max-width:620px){.living-body{padding:0 12px 15px}.living-command{font-size:10px}}
+
+
+/* LAU v0.5 read-only model-output profiles: self-reported, never certified */
+.profile-body{padding:0 17px 19px}
+.profile-intro,.profile-disclaimer{font-size:11px;color:#b6cbd0;line-height:1.65;margin:0 0 15px}
+.profile-intro strong,.profile-disclaimer strong{color:#f2d099}
+.profile-empty{padding:15px;border:1px dashed #70877d;border-radius:6px;background:#2a4145;color:#bad0d0;font-size:11px;line-height:1.7}
+.profile-select{display:flex;flex-direction:column;gap:7px;font:700 10px "Space Mono",monospace;color:#edcc96;letter-spacing:.7px;margin-bottom:13px}
+.profile-select select{width:100%}
+.profile-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-bottom:14px}
+.profile-metrics div{background:#253d44;border:1px solid #567078;border-radius:5px;padding:11px}
+.profile-metrics strong{display:block;color:#f4e3c5;font-size:24px}
+.profile-metrics span{display:block;color:#a9c4c5;font:700 9px/1.5 "Space Mono",monospace}
+.profile-course-list{display:flex;flex-direction:column;gap:8px}
+.profile-course{background:#293e47;border:1px solid #506c73;border-radius:6px;padding:11px}
+.profile-course-title{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.profile-course-title strong{font-size:12px}
+.profile-course-title span{color:#f3d69e;font:700 9px "Space Mono",monospace}
+.profile-bars{height:7px;background:#1a3036;border:1px solid #4b6465;border-radius:6px;overflow:hidden}
+.profile-bars span{display:block;height:100%;background:#9bd4ae}
+.profile-course-details{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px}
+.profile-course-details span{color:#b9cfce;font:700 9px/1.5 "Space Mono",monospace}
+.profile-untested{color:#91acb3;font-size:10px;margin:3px 0 0}
+.profile-mixed{color:#f1c68b;font-size:10px;line-height:1.6;margin:8px 0 0}
+.profile-disclaimer{margin:15px 0 0}
+@media(min-width:1400px){.profile-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}}
